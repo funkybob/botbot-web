@@ -2,8 +2,6 @@
 import datetime
 
 import pytz
-from django.core import mail
-from django.core.urlresolvers import reverse
 from django.test import TestCase
 
 from botbot.apps.accounts import models as account_models

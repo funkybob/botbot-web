@@ -1,5 +1,3 @@
-import socket
-
 from djorm_pgfulltext.models import SearchManager
 from djorm_pgfulltext.fields import VectorField
 from django.db import models
@@ -63,13 +61,13 @@ class Log(models.Model):
     def as_html(self):
         return render_to_string("logs/log_display.html",
                                 {'message_list': [self]})
+
     def get_cleaned_host(self):
         if self.host:
             if '@' in self.host:
                 return self.host.split('@')[1]
             else:
                 return self.host
-
 
     def notify(self):
         """Send update to Nginx to be sent out via SSE"""
@@ -83,7 +81,7 @@ class Log(models.Model):
     def get_nick_color(self):
         return hash(self.nick) % 32
 
-    def __unicode__(self):
+    def __str__(self):
         if self.command == u"PRIVMSG":
             text = u''
             if self.nick:
@@ -93,7 +91,7 @@ class Log(models.Model):
             try:
                 text = MSG_TMPL[self.command].format(nick=self.nick, text=self.text)
             except KeyError:
-                text = u"{}: {}".format(self.command, self.text)
+                text = "{}: {}".format(self.command, self.text)
 
         return text
 

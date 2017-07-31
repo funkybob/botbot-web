@@ -1,7 +1,7 @@
 """
 Site map URLs
 """
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.contrib import sitemaps
 from django.contrib.sitemaps.views import sitemap
 from django.core.urlresolvers import reverse
@@ -21,15 +21,12 @@ class StaticSitemap(sitemaps.Sitemap):
         return reverse(item)
 
 
-
 sitemaps = {
     'channels': ChannelSitemap,
     'static': StaticSitemap,
 }
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^$', cache_page(86400)(sitemap), {'sitemaps': sitemaps},
         name='sitemap'),
-)
-
-
+]

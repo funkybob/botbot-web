@@ -25,15 +25,20 @@ def pretty_slug(server):
 
 class ChatBotManager(models.Manager):
     def get_active_slugs(self):
-        return [i[0] for i in
-                self.get_queryset().filter(is_active=True).distinct(
-                    'slug').values_list('slug')]
+        return list(
+            self.get_queryset()
+            .filter(is_active=True)
+            .distinct('slug')
+            .values_list('slug', flat=True)
+        )
 
 
 class NoAvailableChatBots(Exception):
     """
-    Raised we we don't have any chat bots aviable that can be used on the network.
+    Raised we we don't have any chat bots aviable that can be used on the
+    network.
     """
+
 
 class ChatBot(models.Model):
     is_active = models.BooleanField(default=False)
@@ -66,7 +71,7 @@ class ChatBot(models.Model):
     def legacy_slug(self):
         return self.server.split(':')[0]
 
-    def __unicode__(self):
+    def __str__(self):
         return u'{server} ({nick})'.format(server=self.server, nick=self.nick)
 
     @property
@@ -75,8 +80,8 @@ class ChatBot(models.Model):
 
     def save(self, *args, **kwargs):
         self.server_identifier = u"%s.%s" % (
-            slugify(unicode(self.server.replace(":", " ").replace(".", " "))),
-            slugify(unicode(self.nick))
+            slugify(self.server.replace(":", " ").replace(".", " ")),
+            slugify(self.nick)
         )
 
         if not self.slug:
@@ -98,9 +103,11 @@ class ChatBot(models.Model):
 
         raise NoAvailableChatBots(slug)
 
+
 class ChannelQuerySet(models.query.QuerySet):
     def active(self):
         return self.filter(status=Channel.ACTIVE)
+
 
 class ChannelManager(models.Manager):
 
@@ -137,10 +144,13 @@ class Channel(TimeStampedModel):
     private_slug = models.SlugField(unique=True, blank=True, null=True,
                                     help_text="Slug used for private rooms")
 
-    password = models.CharField(max_length=250, blank=True, null=True,
-                                help_text="Password (mode +k) if the channel requires one")
+    password = models.CharField(
+        max_length=250, blank=True, null=True,
+        help_text="Password (mode +k) if the channel requires one"
+    )
 
-    status = models.CharField(choices=STATUS_CHOICES, default=PENDING, max_length=20)
+    status = models.CharField(choices=STATUS_CHOICES, default=PENDING,
+                              max_length=20)
 
     # Flags
     is_public = models.BooleanField(default=False)
@@ -156,7 +166,7 @@ class Channel(TimeStampedModel):
 
     objects = ChannelManager()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -168,7 +178,9 @@ class Channel(TimeStampedModel):
 
     @classmethod
     def generate_private_slug(cls):
-        return "".join([random.choice(string.ascii_letters) for _ in xrange(8)])
+        return "".join(
+            random.choice(string.ascii_letters) for _ in range(8)
+        )
 
     def get_absolute_url(self):
         from botbot.apps.bots.utils import reverse_channel
@@ -239,23 +251,27 @@ class Channel(TimeStampedModel):
         private channels).
         """
         return models.Q(
-            command__in=['PRIVMSG',
-                         'NICK',
-                         'NOTICE',
-                         'TOPIC',
-                         'ACTION',
-                         'SHUTDOWN',
-                         'JOIN',
-                         'QUIT',
-                         'PART',
-                         'AWAY'
-            ])
+            command__in=[
+                'PRIVMSG',
+                'NICK',
+                'NOTICE',
+                'TOPIC',
+                'ACTION',
+                'SHUTDOWN',
+                'JOIN',
+                'QUIT',
+                'PART',
+                'AWAY'
+            ]
+        )
 
     def filtered_logs(self):
-        return (self.log_set.filter(self.visible_commands_filter)
-                            .exclude(command="NOTICE", nick="NickServ")
-                            .exclude(command="NOTICE",
-                                     text__startswith="*** "))
+        return (
+            self.log_set
+            .filter(self.visible_commands_filter)
+            .exclude(command="NOTICE", nick="NickServ")
+            .exclude(command="NOTICE", text__startswith="*** ")
+        )
 
     def get_months_active(self):
         """
@@ -339,5 +355,5 @@ class UserCount(models.Model):
     dt = models.DateField()
     counts = ArrayField(dbtype="int")
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} on {}: {}".format(self.channel, self.dt, self.counts)

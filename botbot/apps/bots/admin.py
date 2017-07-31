@@ -22,7 +22,6 @@ class ActivePluginInline(admin.StackedInline):
         return 0
 
 
-
 class ChatBotAdmin(admin.ModelAdmin):
     exclude = ('connection', 'server_identifier')
     list_display = ('__unicode__', 'is_active', 'usage')
@@ -58,12 +57,14 @@ class ChannelForm(forms.ModelForm):
 
 class ChannelAdmin(admin.ModelAdmin):
     form = ChannelForm
-    list_display = ('name', 'chatbot', 'status', 'is_featured', 'created', 'updated')
+    list_display = (
+        'name', 'chatbot', 'status', 'is_featured', 'created', 'updated',
+    )
     list_filter = ('status', 'is_featured', 'is_public', 'chatbot')
     prepopulated_fields = {
         'slug': ('name',)
     }
-    list_editable = ('chatbot','status',)
+    list_editable = ('chatbot', 'status',)
     readonly_fields = ('fingerprint', 'created', 'updated')
     search_fields = ('name', 'chatbot__server')
     inlines = [ActivePluginInline]
@@ -84,8 +85,8 @@ class PublicChannels(models.Channel):
         proxy = True
         verbose_name = "Pending Public Channel"
 
-admin.site.register(PublicChannels, PublicChannelApproval)
 
+admin.site.register(PublicChannels, PublicChannelApproval)
 admin.site.register(models.ChatBot, ChatBotAdmin)
 admin.site.register(models.Channel, ChannelAdmin)
 admin.site.register(models.UserCount)

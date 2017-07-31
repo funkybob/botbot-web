@@ -14,11 +14,11 @@ def channel_url_kwargs(channel):
 
 
 def reverse_channel(channel, viewname, urlconf=None, args=None, kwargs=None,
-        *reverse_args, **reverse_kwargs):
+                    *reverse_args, **reverse_kwargs):
     """
     Shortcut to make reversing a channel view easier.
     """
     kwargs = kwargs or {}
     kwargs.update(channel_url_kwargs(channel))
     return reverse(viewname, urlconf, args, kwargs, *reverse_args,
-        **reverse_kwargs)
+                   **reverse_kwargs)

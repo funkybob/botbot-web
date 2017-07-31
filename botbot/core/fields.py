@@ -3,10 +3,6 @@ import json
 from django.db import models
 from django.core.serializers.json import DjangoJSONEncoder
 
-from django.forms import fields
-from django.forms.util import ValidationError
-
-
 
 class JSONField(models.TextField):
     """JSONField is a generic textfield that neatly serializes/unserializes
@@ -20,7 +16,7 @@ class JSONField(models.TextField):
         if value == "":
             return None
         try:
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 return json.loads(value)
         except ValueError:
             pass
@@ -42,6 +38,7 @@ class JSONField(models.TextField):
         if self.null and value is None:
             return None
         return json.dumps(value)
+
 
 try:
     from south.modelsinspector import add_introspection_rules

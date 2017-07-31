@@ -14,10 +14,10 @@ class InfinitePaginator(Paginator):
     """
 
     def __init__(self, object_list, per_page, allow_empty_first_page=True,
-        link_template='/page/%d/', orphans=0):
-        orphans = 0 # no orphans
+                 link_template='/page/%d/', orphans=0):
+        orphans = 0  # no orphans
         super(InfinitePaginator, self).__init__(object_list, per_page, orphans,
-            allow_empty_first_page)
+                                                allow_empty_first_page)
         # no count or num pages
         del self._num_pages, self._count
         # bonus links
@@ -84,8 +84,7 @@ class InfinitePage(Page):
         Checks for one more item than last on this page.
         """
         try:
-            next_item = self.paginator.object_list[
-                self.number * self.paginator.per_page]
+            self.paginator.object_list[self.number * self.paginator.per_page]
         except IndexError:
             return False
         return True
@@ -95,10 +94,11 @@ class InfinitePage(Page):
         Returns the 1-based index of the last object on this page,
         relative to total objects found (hits).
         """
-        return ((self.number - 1) * self.paginator.per_page +
-            len(self.object_list))
+        return (
+            (self.number - 1) * self.paginator.per_page + len(self.object_list)
+        )
 
-    #Bonus methods for creating links
+    # Bonus methods for creating links
 
     def next_link(self):
         if self.has_next():

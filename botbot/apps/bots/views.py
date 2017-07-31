@@ -36,7 +36,7 @@ class ChannelMixin(object):
         """
         try:
             self.channel = self.get_channel(user=request.user, **kwargs)
-        except self.LegacySlugUsage, e:
+        except self.LegacySlugUsage as e:
             return http.HttpResponsePermanentRedirect(e.url)
 
         return super(ChannelMixin, self).dispatch(request, *args, **kwargs)
@@ -57,11 +57,14 @@ class ChannelMixin(object):
         if not self._channel:
             channel_pk = kwargs.get('channel_pk')
             if channel_pk:
-                channel = get_object_or_404(self._channel_queryset(), pk=channel_pk)
+                channel = get_object_or_404(self._channel_queryset(),
+                                            pk=channel_pk)
 
             elif kwargs['bot_slug'] == 'private':
                 channel = get_object_or_404(
-                    self._channel_queryset(), private_slug=kwargs['channel_slug'])
+                    self._channel_queryset(),
+                    private_slug=kwargs['channel_slug']
+                )
 
             else:
                 channel = self._get_identifiable_channel(
@@ -72,7 +75,9 @@ class ChannelMixin(object):
         return self._channel
 
     def _channel_queryset(self):
-        return models.Channel.objects.filter(status__in=(models.Channel.ACTIVE, models.Channel.ARCHIVED))
+        return models.Channel.objects.filter(
+            status__in=(models.Channel.ACTIVE, models.Channel.ARCHIVED)
+        )
 
     def _get_identifiable_channel(self, bot_slug, channel_slug):
         """
