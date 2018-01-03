@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import datetime
 import random
 import string
@@ -5,11 +6,11 @@ import uuid
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Max, Min
+from django.db.models import Max, Min, F
 from django.db.models.aggregates import Count
-from django.utils.datastructures import SortedDict
 from django.utils.text import slugify
-from djorm_pgarray.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField
+
 
 from botbot.apps.plugins import models as plugins_models
 from botbot.apps.plugins.models import Plugin, ActivePlugin
@@ -25,15 +26,18 @@ def pretty_slug(server):
 
 class ChatBotManager(models.Manager):
     def get_active_slugs(self):
-        return [i[0] for i in
-                self.get_queryset().filter(is_active=True).distinct(
-                    'slug').values_list('slug')]
+        return set(
+            self.get_queryset()
+            .filter(is_active=True)
+            .values_list('slug', flat=True)
+        )
 
 
 class NoAvailableChatBots(Exception):
     """
     Raised we we don't have any chat bots aviable that can be used on the network.
     """
+
 
 class ChatBot(models.Model):
     is_active = models.BooleanField(default=False)
@@ -86,32 +90,31 @@ class ChatBot(models.Model):
         return super(ChatBot, self).save(*args, **kwargs)
 
     @classmethod
-    def allocate_bot(cls, slug):
-        bots = cls.objects.filter(slug='freenode', is_active=True).annotate(
-            Count('channel')).order_by('channel__count')
+    def allocate_bot(cls, slug='freenode'):
+        bot = (
+            cls.objects
+            .filter(slug=slug, is_active=True)
+            .annotate(
+                current_channels=Count('channel')
+            )
+            .filter(
+                current_channels__lt=F('max_channels'),
+            )
+            .order_by('current_channels')
+        ).first()
 
-        for bot in bots:
-            if bot.max_channels > bot.channel__count:
-                return bot
-            else:
-                continue
+        if bot:
+            return bot
 
         raise NoAvailableChatBots(slug)
+
 
 class ChannelQuerySet(models.query.QuerySet):
     def active(self):
         return self.filter(status=Channel.ACTIVE)
 
-class ChannelManager(models.Manager):
-
-    def get_queryset(self):
-        return ChannelQuerySet(self.model, using=self._db)
-
     def public(self):
-        return self.get_queryset().filter(is_public=True)
-
-    def active(self):
-        self.get_queryset().active()
+        return self.filter(is_public=True)
 
 
 class Channel(TimeStampedModel):
@@ -154,7 +157,7 @@ class Channel(TimeStampedModel):
 
     notes = models.TextField(blank=True)
 
-    objects = ChannelManager()
+    objects = ChannelQuerySet.as_manager()
 
     def __unicode__(self):
         return self.name
@@ -168,7 +171,7 @@ class Channel(TimeStampedModel):
 
     @classmethod
     def generate_private_slug(cls):
-        return "".join([random.choice(string.ascii_letters) for _ in xrange(8)])
+        return "".join(random.choice(string.ascii_letters) for _ in xrange(8))
 
     def get_absolute_url(self):
         from botbot.apps.bots.utils import reverse_channel
@@ -203,8 +206,11 @@ class Channel(TimeStampedModel):
         cache_key = self.active_plugin_slugs_cache_key
         cached_plugins = cache.get(cache_key)
         if not cached_plugins:
-            plugins = self.activeplugin_set.all().select_related('plugin')
-            slug_set = set([actv.plugin.slug for actv in plugins])
+            plugins = set(
+                self.activeplugin_set
+                .annotate(slug=F('plugin__slug'))
+                .values_list('slug', flat=True)
+            )
             cache.set(cache_key, slug_set)
             cached_plugins = slug_set
         return cached_plugins
@@ -215,8 +221,7 @@ class Channel(TimeStampedModel):
         cached_config = cache.get(cache_key)
         if not cached_config:
             try:
-                active_plugin = self.activeplugin_set.get(
-                    plugin__slug=plugin_slug)
+                active_plugin = self.activeplugin_set.get(plugin__slug=plugin_slug)
                 cached_config = active_plugin.configuration
             except plugins_models.ActivePlugin.DoesNotExist:
                 cached_config = {}
@@ -226,9 +231,7 @@ class Channel(TimeStampedModel):
     def user_can_access_kudos(self, user):
         if self.public_kudos:
             return True
-        return (
-            user.is_authenticated()
-        )
+        return user.is_authenticated()
 
     @property
     def visible_commands_filter(self):
@@ -239,27 +242,30 @@ class Channel(TimeStampedModel):
         private channels).
         """
         return models.Q(
-            command__in=['PRIVMSG',
-                         'NICK',
-                         'NOTICE',
-                         'TOPIC',
-                         'ACTION',
-                         'SHUTDOWN',
-                         'JOIN',
-                         'QUIT',
-                         'PART',
-                         'AWAY'
-            ])
+            command__in=[
+                'PRIVMSG',
+                'NICK',
+                'NOTICE',
+                'TOPIC',
+                'ACTION',
+                'SHUTDOWN',
+                'JOIN',
+                'QUIT',
+                'PART',
+                'AWAY'
+            ]
+        )
 
     def filtered_logs(self):
-        return (self.log_set.filter(self.visible_commands_filter)
-                            .exclude(command="NOTICE", nick="NickServ")
-                            .exclude(command="NOTICE",
-                                     text__startswith="*** "))
+        return (
+            self.log_set.filter(self.visible_commands_filter)
+            .exclude(command="NOTICE", nick="NickServ")
+            .exclude(command="NOTICE", text__startswith="*** ")
+        )
 
     def get_months_active(self):
         """
-        Creates a SortedDict of the format:
+        Creates a OrderedDict of the format:
         {
             ...
             '2010': {
@@ -273,18 +279,19 @@ class Channel(TimeStampedModel):
         minmax_dict_key = "minmax_dict_%s_%s" % (self.id, current_month)
         minmax_dict = cache.get(minmax_dict_key, None)
         if minmax_dict is None:
-            minmax_dict = self.log_set.all().aggregate(
+            minmax_dict = self.log_set.aggregate(
                 last_log=Max("timestamp"),
-                first_log=Min("timestamp"))
+                first_log=Min("timestamp"),
+            )
             if not minmax_dict['first_log']:
-                return SortedDict()
+                return OrderedDict()
             # cache for 10 days
             cache.set(minmax_dict_key, minmax_dict, 864000)
         first_log = minmax_dict['first_log'].date()
         last_log = minmax_dict['last_log'].date()
         last_log = datetime.date(last_log.year, last_log.month, 1)
         current = datetime.date(first_log.year, first_log.month, 1)
-        months_active = SortedDict()
+        months_active = OrderedDict()
         while current <= last_log:
             months_active.setdefault(current.year, []).append(current)
             if current.month == 12:
@@ -337,7 +344,7 @@ class UserCount(models.Model):
 
     channel = models.ForeignKey(Channel)
     dt = models.DateField()
-    counts = ArrayField(dbtype="int")
+    counts = ArrayField(models.IntegerField(), blank=True, null=True)
 
     def __unicode__(self):
         return "{} on {}: {}".format(self.channel, self.dt, self.counts)

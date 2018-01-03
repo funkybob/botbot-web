@@ -171,13 +171,11 @@ def _timeline_context(timeline):
 
     # the last month in the timeline needs special treatment so it
     # doesn't get ordered ahead of the last/current weeks
-    last_month = timeline[timeline.keyOrder[-1]].pop()
+    last_month = timeline[timeline.keys()[-1]].pop()
     if last_month >= last_week:
-        last_month_adjusted = (last_week -
-                               datetime.timedelta(days=1))
+        last_month_adjusted = (last_week - datetime.timedelta(days=1))
     elif last_month >= last_monday:
-        last_month_adjusted = (last_monday -
-                               datetime.timedelta(days=1))
+        last_month_adjusted = (last_monday - datetime.timedelta(days=1))
     else:
         last_month_adjusted = last_month
 
@@ -185,8 +183,10 @@ def _timeline_context(timeline):
         'timeline': timeline,
         'this_week': last_monday,
         'last_week': last_week,
-        'last_month': {'real': last_month,
-                       'adjusted': last_month_adjusted},
+        'last_month': {
+            'real': last_month,
+            'adjusted': last_month_adjusted,
+        },
     }
     return result
 

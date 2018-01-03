@@ -1,14 +1,15 @@
-django==1.8.4
+django~=1.11
 
 pytz
 Jinja2==2.7.3
 django-jinja==1.4.1
-psycopg2==2.5.2
+psycopg2
 dj-database-url==0.2.2
 # TODO (yml): Remove hstore when we squash the migration
-django-hstore==1.2.5
+# django-hstore==1.2.5
 # django-statsd-mozilla==0.3.12
-git+https://github.com/vbabiy/django-statsd.git@request-aggregation
+# git+https://github.com/vbabiy/django-statsd.git@request-aggregation
+django-statsd-mozilla
 
 markdown==2.3.1
 redis==2.9.1
@@ -34,4 +35,3 @@ geoip2==2.1.0
 
 # For plugins
 -e git+https://github.com/BotBotMe/botbot-plugins.git#egg=botbot-plugins
-

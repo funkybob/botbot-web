@@ -161,17 +161,17 @@ TEMPLATES = [
 #==============================================================================
 # Middleware
 #==============================================================================
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = [
     'django_statsd.middleware.GraphiteRequestTimingMiddleware',
     'django_statsd.middleware.GraphiteMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-) + MIDDLEWARE_CLASSES + (
+ ] + MIDDLEWARE_CLASSES + [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'botbot.core.middleware.TimezoneMiddleware',
-)
+ ]
 
 #==============================================================================
 # Auth / security
@@ -203,7 +203,7 @@ LOGGING = {
     'handlers': {
         'null': {
             'level': 'DEBUG',
-            'class': 'django.utils.log.NullHandler',
+            'class': 'logging.NullHandler',
         },
         'console': {
             'level': 'DEBUG',

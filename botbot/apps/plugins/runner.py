@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime
+from importlib import import_module
 
 from django.utils.timezone import utc
 import re
@@ -10,7 +11,6 @@ import botbot_plugins.plugins
 from botbot_plugins.base import PrivateMessage
 from django.core.cache import cache
 from django.conf import settings
-from django.utils.importlib import import_module
 from django_statsd.clients import statsd
 
 from botbot.apps.bots import models as bots_models

@@ -1,11 +1,11 @@
 import socket
 
-from djorm_pgfulltext.models import SearchManager
-from djorm_pgfulltext.fields import VectorField
 from django.db import models
 from django.conf import settings
-from django.template.loader import render_to_string
+from django.contrib.postgres.search import SearchVectorField
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
+
 from botbot.apps.bots.utils import channel_url_kwargs
 
 
@@ -14,13 +14,13 @@ from . import utils
 REDACTED_TEXT = '[redacted]'
 
 MSG_TMPL = {
-        u"JOIN": u"{nick} joined the channel",
-        u"NICK": u"{nick} is now known as {text}",
-        u"QUIT": u"{nick} has quit",
-        u"PART": u"{nick} has left the channel",
-        u"ACTION": u"{nick} {text}",
-        u"SHUTDOWN": u"-- BotBot disconnected, possible missing messages --",
-        }
+    u"JOIN": u"{nick} joined the channel",
+    u"NICK": u"{nick} is now known as {text}",
+    u"QUIT": u"{nick} has quit",
+    u"PART": u"{nick} has left the channel",
+    u"ACTION": u"{nick} {text}",
+    u"SHUTDOWN": u"-- BotBot disconnected, possible missing messages --",
+}
 
 
 class Log(models.Model):
@@ -39,14 +39,14 @@ class Log(models.Model):
     #  so 100 should be enough
     room = models.CharField(max_length=100, null=True, blank=True)
 
-    search_index = VectorField()
+    search_index = SearchVectorField()
 
-    objects = SearchManager(
-        fields=('text',),
-        config='pg_catalog.english',   # this is default
-        search_field='search_index',   # this is default
-        auto_update_search_field=True
-    )
+    # objects = SearchManager(
+    #     fields=('text',),
+    #     config='pg_catalog.english',   # this is default
+    #     search_field='search_index',   # this is default
+    #     auto_update_search_field=True
+    # )
 
     class Meta:
         ordering = ('-timestamp',)
